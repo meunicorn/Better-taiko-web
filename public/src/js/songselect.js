@@ -205,19 +205,19 @@ class SongSelect{
 				category: assets.customSongs ? strings.customSongs.default : strings.customSongs.title
 			})
 		}
-		if(plugins && plugins.hasSettings()){
+		// if(plugins && plugins.hasSettings()){
 			this.songs.push({
 				title: strings.plugins.title,
 				skin: this.songSkin.plugins,
 				action: "plugins",
 				category: strings.plugins.title
 			})
-		}
-		// this.songs.push({
-		// 	title: strings.back,
-		// 	skin: this.songSkin.back,
-		// 	action: "back"
-		// })
+		// }
+		this.songs.push({
+			title: strings.back,
+			skin: this.songSkin.back,
+			action: "back"
+		})
 
 		this.songAsset = {
 			marginTop: 104,
