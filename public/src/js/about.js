@@ -1,5 +1,8 @@
 ﻿class About{
-	constructor(touchEnabled){
+	constructor(...args){
+		this.init(...args)
+	}
+	init(touchEnabled){
 		this.touchEnabled = touchEnabled
 		loader.changePage("about", true)
 		cancelTouch = false
@@ -120,7 +123,7 @@
 		var diag = []
 		
 		diag.push("```")
-		diag.push("Taiko-Web version: " + this.version)
+		diag.push(gameConfig.game_name + " version: " + this.version)
 		diag.push("URL: " + location.href)
 		diag.push("User agent: " + navigator.userAgent)
 		diag.push("Screen size: " + innerWidth + "x" + innerHeight + ", outer: " + outerWidth + "x" + outerHeight + ", ratio: " + (window.devicePixelRatio || 1).toFixed(2))
@@ -157,6 +160,10 @@
 		diag.push("Language: " + strings.id + userLangStr)
 		var latency = settings.getItem("latency")
 		diag.push("Audio Latency: " + (latency.audio > 0 ? "+" : "") + latency.audio.toString() + "ms, Video Latency: " + (latency.video > 0 ? "+" : "") + latency.video.toString() + "ms")
+		var pluginList = plugins.allPlugins.map(pluginLoader => {
+			return (pluginLoader.plugin.module && pluginLoader.plugin.module.name || pluginLoader.name) + (pluginLoader.plugin.started ? " (started)" : "")
+		})
+		diag.push("Plugins: " + pluginList.join(", "))
 		var errorObj = {}
 		if(localStorage["lastError"]){
 			try{

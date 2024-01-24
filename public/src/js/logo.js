@@ -1,26 +1,58 @@
 ﻿class Logo{
-	constructor(){
+	constructor(...args){
+		this.init(...args)
+	}
+	init(){
 		this.canvas = document.getElementById("logo")
 		this.ctx = this.canvas.getContext("2d")
-		this.pathSvg = failedTests.indexOf("Path2D SVG") === -1 && vectors.logo1
+		var pathSvg = failedTests.indexOf("Path2D SVG") === -1
+		this.pathSvg = null
 		this.symbolFont = "TnT, Meiryo, sans-serif"
-		this.symbols = [{
-			x: 315, y: 18, xAlt: 15, scale: true, text: "ブ",
-			path: new Path2D(vectors.logo5)
-		}, {
-			x: 267, y: 50, yAlt: -34, scale: true, text: "ェ",
-			path: new Path2D(vectors.logo4)
-		}, {
-			x: 197, y: 7, xAlt: 15, scale: true, text: "ウ",
-			path: new Path2D(vectors.logo3)
-		}, {
-			x: 87, y: 7, xAlt: 15, text: "鼓",
-			path: new Path2D(vectors.logo2),
-			shadow: new Path2D(vectors.logo2Shadow)
-		}, {
-			x: 22, y: 16, xAlt: 10, scaleAlt: true, text: "太",
-			path: new Path2D(vectors.logo1)
-		}]
+		this.symbols = gameConfig.game_logo || []
+		
+		if(this.symbols.length === 0){
+			var ctx = this.ctx
+			ctx.save()
+			ctx.font = "100px " + this.symbolFont
+			var totalWidth = 0
+			var gameSplit = gameConfig.game_name_full.split("").map(text => {
+				var width = ctx.measureText(text).width
+				totalWidth += width
+				return {
+					width: width,
+					text: text
+				}
+			})
+			ctx.restore()
+			
+			var gameSize = gameSplit.length
+			var letterScale = Math.max(2, Math.min(3.5, 14 / gameSize))
+			var letterSize = (1170 - 44) / totalWidth
+			var x = 22
+			gameSplit.forEach((letter, i) => {
+				var y = 17 - (1 - Math.abs(i / (gameSize - 1) * 2 - 1)) * 11
+				this.symbols.unshift({
+					x: x,
+					y: y,
+					scale: letterScale,
+					text: letter.text
+				})
+				x += letter.width / letterScale * letterSize
+			})
+		}
+		this.symbols.forEach(symbol => {
+			if(symbol.vectors){
+				symbol.path = new Path2D(vectors[symbol.vectors])
+				if(!vectors[symbol.vectors]){
+					this.pathSvg = false
+				}else if(this.pathSvg === null){
+					this.pathSvg = true
+				}
+				if(symbol.hasShadow){
+					symbol.shadow = new Path2D(vectors[symbol.vectors + "Shadow"])
+				}
+			}
+		})
 		pageEvents.add(window, "resize", this.update.bind(this))
 	}
 	updateSubtitle(){
@@ -29,8 +61,9 @@
 		this.subtitleW = 0
 		var index = 0
 		var latinLowercase = /[a-z]/
-		for(var i = 0; i < strings.taikoWeb.length; i++){
-			var letter = strings.taikoWeb[i]
+		var gameName = plugins.getLocalTitle(gameConfig.game_name_full, gameConfig.game_name_lang)
+		for(var i = 0; i < gameName.length; i++){
+			var letter = gameName[i]
 			var width = 57
 			if(letter === "ェ"){
 				width = 40
@@ -61,8 +94,8 @@
 		var pixelRatio = window.devicePixelRatio || 1
 		var winW = this.canvas.offsetWidth * pixelRatio
 		var winH = this.canvas.offsetHeight * pixelRatio
-		this.canvas.width = winW
-		this.canvas.height = winH
+		this.canvas.width = Math.max(1, winW)
+		this.canvas.height = Math.max(1, winH)
 		ctx.scale(winW / this.width, winH / this.height)
 		
 		ctx.lineJoin = "round"
@@ -90,6 +123,7 @@
 		}else{
 			ctx.font = "100px " + this.symbolFont
 		}
+		var drawSquares = false
 		for(var i = 0; i < this.symbols.length; i++){
 			var symbol = this.symbols[i]
 			ctx.strokeStyle = "#7c361e"
@@ -98,22 +132,23 @@
 			ctx.strokeStyle = "#fff"
 			ctx.lineWidth = 7.5
 			this.drawSymbol(symbol, "stroke")
-			if(this.pathSvg){
+			if(this.pathSvg && symbol.path){
 				var grd = ctx.createLinearGradient(0, 55 - symbol.y, 0, 95 - symbol.y)
 				grd.addColorStop(0, "#a41f1e")
 				grd.addColorStop(1, "#a86a29")
 				ctx.fillStyle = grd
 				this.drawSymbol(symbol, "fill")
 				ctx.save()
-				ctx.scale(symbol.scale ? 2.8 : 3.2, 3.2)
+				ctx.scale(symbol.scale ? symbol.scale : 3.2, 3.2)
 				ctx.translate(symbol.x, symbol.y)
 				ctx.clip(symbol.path)
+				drawSquares = true
 			}
 			grd = ctx.createLinearGradient(0, 55 - symbol.y, 0, 95 - symbol.y)
 			grd.addColorStop(0, "#d80e11")
 			grd.addColorStop(1, "#e08f19")
 			ctx.fillStyle = grd
-			if(this.pathSvg){
+			if(this.pathSvg && (symbol.shadow || symbol.path)){
 				ctx.translate(3, 2)
 				ctx.fill(symbol.shadow || symbol.path)
 				ctx.restore()
@@ -121,12 +156,12 @@
 				this.drawSymbol(symbol, "fill")
 			}
 		}
-		if(this.pathSvg){
+		if(!this.pathSvg){
+			ctx.font = this.bold(strings.font) + "55px " + strings.font
+		}else if(drawSquares){
 			ctx.fillStyle = "#fff"
 			ctx.fillRect(382, 85, 30, 15)
 			ctx.fillRect(402, 145, 15, 15)
-		}else{
-			ctx.font = this.bold(strings.font) + "55px " + strings.font
 		}
 		
 		this.subtitleIterate((letter, x) => {
@@ -147,9 +182,9 @@
 	drawSymbol(symbol, action, y){
 		var ctx = this.ctx
 		ctx.save()
-		ctx.scale((symbol.scale || !this.pathSvg && symbol.scaleAlt) ? 2.8 : 3.2, 3.2)
+		ctx.scale(symbol.scale ? symbol.scale : (((!this.pathSvg || !symbol.path) && symbol.scaleAlt) ? symbol.scaleAlt : 3.2), 3.2)
 		ctx.translate(symbol.x, symbol.y + (y || 0))
-		if(this.pathSvg){
+		if(this.pathSvg && symbol.path){
 			ctx[action](symbol.path)
 		}else{
 			ctx[action + "Text"](symbol.text, 30 + (symbol.xAlt || 0), -4 + (symbol.yAlt || 0))

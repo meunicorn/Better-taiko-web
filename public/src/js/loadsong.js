@@ -1,5 +1,8 @@
 class LoadSong{
-	constructor(selectedSong, autoPlayEnabled, multiplayer, touchEnabled){
+	constructor(...args){
+		this.init(...args)
+	}
+	init(selectedSong, autoPlayEnabled, multiplayer, touchEnabled){
 		this.selectedSong = selectedSong
 		this.autoPlayEnabled = autoPlayEnabled
 		this.multiplayer = multiplayer
@@ -100,8 +103,8 @@ class LoadSong{
 				}
 				let img = document.createElement("img")
 				let force = imgLoad[i].type === "song" && this.touchEnabled
-				if(!songObj.custom && (this.imgScale !== 1 || force)){
-					img.crossOrigin = "Anonymous"
+				if(!songObj.custom){
+					img.crossOrigin = "anonymous"
 				}
 				let promise = pageEvents.load(img)
 				this.addPromise(promise.then(() => {
@@ -144,15 +147,30 @@ class LoadSong{
 		}
 		if(this.touchEnabled && !assets.image["touch_drum"]){
 			let img = document.createElement("img")
-			if(this.imgScale !== 1){
-				img.crossOrigin = "Anonymous"
-			}
+			img.crossOrigin = "anonymous"
 			var url = gameConfig.assets_baseurl + "img/touch_drum.png"
 			this.addPromise(pageEvents.load(img).then(() => {
 				return this.scaleImg(img, "touch_drum", "")
 			}), url)
 			img.src = url
 		}
+		var resultsImg = [
+			"results_flowers",
+			"results_mikoshi",
+			"results_tetsuohana",
+			"results_tetsuohana2"
+		]
+		resultsImg.forEach(id => {
+			if(!assets.image[id]){
+				var img = document.createElement("img")
+				img.crossOrigin = "anonymous"
+				var url = gameConfig.assets_baseurl + "img/" + id + ".png"
+				this.addPromise(pageEvents.load(img).then(() => {
+					return this.scaleImg(img, id, "")
+				}), url)
+				img.src = url
+			}
+		})
 		if(songObj.volume && songObj.volume !== 1){
 			this.promises.push(new Promise(resolve => setTimeout(resolve, 500)))
 		}
@@ -214,9 +232,7 @@ class LoadSong{
 				if(!(filenameAb in assets.image)){
 					let img = document.createElement("img")
 					let force = filenameAb.startsWith("bg_song_") && this.touchEnabled
-					if(this.imgScale !== 1 || force){
-						img.crossOrigin = "Anonymous"
-					}
+					img.crossOrigin = "anonymous"
 					var url = gameConfig.assets_baseurl + "img/" + filenameAb + ".png"
 					this.addPromise(pageEvents.load(img).then(() => {
 						return this.scaleImg(img, filenameAb, "", force)
@@ -232,32 +248,29 @@ class LoadSong{
 			if(force && scale > 0.5){
 				scale = 0.5
 			}
-			if(scale !== 1){
-				var canvas = document.createElement("canvas")
-				var w = Math.floor(img.width * scale)
-				var h = Math.floor(img.height * scale)
-				canvas.width = w
-				canvas.height = h
-				var ctx = canvas.getContext("2d")
-				ctx.drawImage(img, 0, 0, w, h)
-				var saveScaled = url => {
-					let img2 = document.createElement("img")
-					pageEvents.load(img2).then(() => {
-						assets.image[prefix + filename] = img2
-						resolve()
-					}, reject)
-					img2.src = url
-				}
-				if("toBlob" in canvas){
-					canvas.toBlob(blob => {
-						saveScaled(URL.createObjectURL(blob))
-					})
-				}else{
-					saveScaled(canvas.toDataURL())
-				}
+			var canvas = document.createElement("canvas")
+			var w = Math.floor(img.width * scale)
+			var h = Math.floor(img.height * scale)
+			canvas.width = Math.max(1, w)
+			canvas.height = Math.max(1, h)
+			var ctx = canvas.getContext("2d")
+			ctx.drawImage(img, 0, 0, w, h)
+			var saveScaled = url => {
+				let img2 = document.createElement("img")
+				pageEvents.load(img2).then(() => {
+					assets.image[prefix + filename] = img2
+					loader.assetsDiv.appendChild(img2)
+					resolve()
+				}, reject)
+				img2.id = prefix + filename
+				img2.src = url
+			}
+			if("toBlob" in canvas){
+				canvas.toBlob(blob => {
+					saveScaled(URL.createObjectURL(blob))
+				})
 			}else{
-				assets.image[prefix + filename] = img
-				resolve()
+				saveScaled(canvas.toDataURL())
 			}
 		})
 	}
@@ -305,9 +318,9 @@ class LoadSong{
 				}else if(event.type === "gamestart"){
 					this.clean()
 					p2.clearMessage("songsel")
-					var taikoGame1 = new Controller(song, this.songData, false, 1, this.touchEnabled)
-					var taikoGame2 = new Controller(this.selectedSong2, this.song2Data, true, 2, this.touchEnabled)
-					taikoGame1.run(taikoGame2)
+					var drumGame1 = new Controller(song, this.songData, false, 1, this.touchEnabled)
+					var drumGame2 = new Controller(this.selectedSong2, this.song2Data, true, 2, this.touchEnabled)
+					drumGame1.run(drumGame2)
 					pageEvents.send("load-song-player2", this.selectedSong2)
 				}else if(event.type === "left" || event.type === "gameend"){
 					this.clean()
@@ -322,8 +335,8 @@ class LoadSong{
 			})
 		}else{
 			this.clean()
-			var taikoGame = new Controller(song, this.songData, this.autoPlayEnabled, false, this.touchEnabled)
-			taikoGame.run()
+			var drumGame = new Controller(song, this.songData, this.autoPlayEnabled, false, this.touchEnabled)
+			drumGame.run()
 		}
 	}
 	startMultiplayer(repeat){

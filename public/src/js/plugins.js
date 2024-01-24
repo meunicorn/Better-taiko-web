@@ -124,7 +124,7 @@ class Plugins{
 			}
 		}
 	}
-
+	
 	strFromFunc(func){
 		var output = func.toString()
 		return output.slice(output.indexOf("{") + 1, output.lastIndexOf("}"))
@@ -194,7 +194,7 @@ class Plugins{
 		}
 		return false
 	}
-
+	
 	hasSettings(){
 		for(var i = 0; i < this.allPlugins.length; i++){
 			var plugin = this.allPlugins[i].plugin
@@ -429,7 +429,7 @@ class PluginLoader{
 					}
 				}
 			}
-
+			
 			this.started = false
 			try{
 				if(this.module.beforeStop){
@@ -446,7 +446,7 @@ class PluginLoader{
 					this.error()
 				}
 			}
-
+			
 			if(!orderChange && stopIndex !== -1){
 				for(var i = stopIndex; i < plugins.startOrder.length; i++){
 					plugins.pluginMap[plugins.startOrder[i]].start(true)

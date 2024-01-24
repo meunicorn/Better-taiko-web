@@ -14,6 +14,10 @@ function browserSupport(){
 			eval("class a{}")
 			return true
 		},
+		"Class field declarations": function(){
+			eval("class a{a=1}")
+			return true
+		},
 		"Array.find": function(){
 			return "find" in Array.prototype && "findIndex" in Array.prototype
 		},
@@ -56,6 +60,10 @@ function browserSupport(){
 		},
 		"KeyboardEvent.key": function(){
 			return "key" in KeyboardEvent.prototype
+		},
+		"Module import": function(){
+			eval("import('data:text/javascript,')")
+			return true
 		}
 	}
 	failedTests = []
@@ -107,10 +115,12 @@ function showUnsupported(strings){
 	var warn = document.createElement("div")
 	warn.id = "unsupportedWarn"
 	warn.innerText = "!"
+	warn.textContent = "!"
 	div.appendChild(warn)
 	var hide = document.createElement("div")
 	hide.id = "unsupportedHide"
 	hide.innerText = "x"
+	hide.textContent = "x"
 	div.appendChild(hide)
 	
 	var span = document.createElement("span")
@@ -119,6 +129,7 @@ function showUnsupported(strings){
 		if(i !== 0){
 			var link = document.createElement("a")
 			link.innerText = strings.browserSupport.details
+			link.textContent = strings.browserSupport.details
 			span.appendChild(link)
 		}
 		span.appendChild(document.createTextNode(browserWarning[i]))
@@ -133,6 +144,7 @@ function showUnsupported(strings){
 	for(var i = 0; i < failedTests.length; i++){
 		var li = document.createElement("li")
 		li.innerText = failedTests[i]
+		li.textContent = failedTests[i]
 		ul.appendChild(li)
 	}
 	details.appendChild(ul)
@@ -143,6 +155,7 @@ function showUnsupported(strings){
 			var chrome = document.createElement("a")
 			chrome.href = "https://www.google.com/chrome/"
 			chrome.innerText = "Google Chrome"
+			chrome.textContent = "Google Chrome"
 			details.appendChild(chrome)
 		}
 		details.appendChild(document.createTextNode(supportedBrowser[i]))

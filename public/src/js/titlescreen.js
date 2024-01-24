@@ -1,10 +1,14 @@
 class Titlescreen{
-	constructor(songId){
+	constructor(...args){
+		this.init(...args)
+	}
+	init(songId){
 		this.songId = songId
 		db.getItem("customFolder").then(folder => this.customFolder = folder)
 		
 		if(!songId){
 			loader.changePage("titlescreen", false)
+			loader.screen.style.backgroundImage = ""
 			
 			this.titleScreen = document.getElementById("title-screen")
 			this.proceed = document.getElementById("title-proceed")
@@ -72,8 +76,9 @@ class Titlescreen{
 				}
 				pageEvents.remove(p2, "message")
 				if(this.customFolder && !fromP2 && !assets.customSongs){
-					var customSongs = new CustomSongs(this.touched, true)
+					var customSongs = new CustomSongs(this.touched, true, true)
 					var soundPlayed = false
+					var noError = true
 					var promises = []
 					var allFiles = []
 					this.customFolder.forEach(file => {
@@ -92,6 +97,13 @@ class Titlescreen{
 						setTimeout(() => {
 							new SongSelect(false, false, this.touched, this.songId)
 						}, 500)
+						noError = false
+					}).then(() => {
+						if(noError){
+							setTimeout(() => {
+								new SongSelect("customSongs", false, this.touched)
+							}, 500)
+						}
 					})
 				}else{
 					setTimeout(() => {
@@ -113,10 +125,20 @@ class Titlescreen{
 		this.proceed.innerText = strings.titleProceed
 		this.proceed.setAttribute("alt", strings.titleProceed)
 		
-		this.disclaimerText.innerText = strings.titleDisclaimer
-		this.disclaimerText.setAttribute("alt", strings.titleDisclaimer)
-		this.disclaimerCopyright.innerText = strings.titleCopyright
-		this.disclaimerCopyright.setAttribute("alt", strings.titleCopyright)
+		if(gameConfig.title_disclaimer){
+			var titleDisclaimer = plugins.getLocalTitle(gameConfig.title_disclaimer.en, gameConfig.title_disclaimer)
+			if(titleDisclaimer){
+				this.disclaimerText.innerText = titleDisclaimer
+				this.disclaimerText.setAttribute("alt", titleDisclaimer)
+			}
+		}
+		if(gameConfig.title_copyright){
+			var titleCopyright = plugins.getLocalTitle(gameConfig.title_copyright.en, gameConfig.title_copyright)
+			if(titleCopyright){
+				this.disclaimerCopyright.innerText = titleCopyright
+				this.disclaimerCopyright.setAttribute("alt", titleCopyright)
+			}
+		}
 		
 		this.logo.updateSubtitle()
 	}

@@ -1,5 +1,8 @@
 class GameInput{
-	constructor(controller){
+	constructor(...args){
+		this.init(...args)
+	}
+	init(controller){
 		this.controller = controller
 		this.game = this.controller.game
 		
@@ -168,8 +171,6 @@ class GameInput{
 		}
 	}
 	checkKeySound(name, sound){
-		var vOneLS = localStorage.getItem("vOneLocalStorage")
-		var soundEffect = Number(vOneLS)
 		this.checkKey(name, "sound", () => {
 			var circles = this.controller.getCircles()
 			var circle = circles[this.controller.getCurrentCircle()]
@@ -181,15 +182,9 @@ class GameInput{
 						this.controller.playSound("se_balloon")
 						return
 					}
-				}else if(circle.type === "adlib"){
-					var relative = Math.abs(currentTime - circle.ms)
-					if(relative < this.game.rules.ok){
-						this.controller.playSound("se_hidden")
-						return
-					}
 				}
 			}
-			this.controller.playSound("neiro_"+ soundEffect + "_" + sound)
+			this.controller.playSound("neiro_1_" + sound)
 		})
 	}
 	getKeys(){

@@ -1,5 +1,8 @@
 class Scoresheet{
-	constructor(controller, results, multiplayer, touchEnabled){
+	constructor(...args){
+		this.init(...args)
+	}
+	init(controller, results, multiplayer, touchEnabled){
 		this.controller = controller
 		this.resultsObj = results
 		this.player = [multiplayer ? (p2.player === 1 ? 0 : 1) : 0]
@@ -212,8 +215,8 @@ class Scoresheet{
 		
 		if(this.redrawing){
 			if(this.winW !== winW || this.winH !== winH){
-				this.canvas.width = winW
-				this.canvas.height = winH
+				this.canvas.width = Math.max(1, winW)
+				this.canvas.height = Math.max(1, winH)
 				ctx.scale(ratio, ratio)
 				this.canvas.style.width = (winW / this.pixelRatio) + "px"
 				this.canvas.style.height = (winH / this.pixelRatio) + "px"
@@ -347,18 +350,6 @@ class Scoresheet{
 		}
 		
 		var rules = this.controller.game.rules
-		
-		var showAdlib = false
-		for(var p = 0; p < players; p++){
-			var results = this.results
-			if(p === 1){
-				results = p2.results
-			}
-			if(results.adlibTotal > 0){
-				showAdlib = true
-			}
-		}
-		
 		var failedOffset = rules.clearReached(this.results[this.player[0]].gauge) ? 0 : -2000
 		if(players === 2 && failedOffset !== 0){
 			var p2results = this.results[this.player[1]]
@@ -502,12 +493,8 @@ class Scoresheet{
 						})
 					})
 					
-					let badge_name = this.controller.getModBadge();
-					if(this.controller.autoPlayEnabled) {
-						badge_name = "badge_auto";
-					}
-					if(badge_name){
-						ctx.drawImage(assets.image[badge_name],
+					if(this.controller.autoPlayEnabled){
+						ctx.drawImage(assets.image["badge_auto"],
 							431, 311, 34, 34
 						)
 					}
@@ -620,27 +607,6 @@ class Scoresheet{
 						{outline: "#000", letterBorder: 8},
 						{fill: "#ffc700"}
 					])
-					if(showAdlib){
-						this.draw.score({
-							ctx: ctx,
-							score: "adlib",
-							x: 1149,
-							y: 273,
-							results: true
-						})
-						this.draw.layeredText({
-							ctx: ctx,
-							text: "%",
-							x: 971 + 270,
-							y: 196 + 80,
-							fontSize: 26,
-							fontFamily: this.numbersFont,
-							align: "right"
-						}, [
-							{outline: "#000", letterBorder: 9},
-							{fill: "#fff"}
-						])
-					}
 				}
 				ctx.restore()
 			})
@@ -716,7 +682,7 @@ class Scoresheet{
 				}
 				var crownType = null
 				if(this.rules[p].clearReached(results.gauge)){
-					crownType = results.bad === "0" ? (results.ok === "0" ? "rainbow" : "gold") : "silver"
+					crownType = results.bad === "0" ? "gold" : "silver"
 				}
 				if(crownType !== null){
 					noCrownResultWait = 0;
@@ -743,7 +709,7 @@ class Scoresheet{
 						}
 						if(this.state.screen === "fadeIn" && elapsed >= 1200 && !this.state["fullcomboPlayed" + p]){
 							this.state["fullcomboPlayed" + p] = true
-							if(crownType === "gold" || crownType === "rainbow"){ // TODO: sound effect of donder full combo
+							if(crownType === "gold"){
 								this.playSound("v_results_fullcombo" + (p === 1 ? "2" : ""), p)
 							}
 						}
@@ -774,9 +740,6 @@ class Scoresheet{
 			ctx.translate(frameLeft, frameTop)
 			
 			var printNumbers = ["good", "ok", "bad", "maxCombo", "drumroll"]
-			if(showAdlib){
-				printNumbers.push("adlib")
-			}
 			if(!this.state["countupTime0"]){
 				var times = {}
 				var lastTime = 0
@@ -798,12 +761,7 @@ class Scoresheet{
 							continue
 						}
 						times[printNumbers[i]] = lastTime + 500
-						if(printNumbers[i] === "adlib"){
-							var resultsNumber = (results.adlibTotal > 0 ? Math.floor(results.adlib / results.adlibTotal * 100) : 0).toString()
-						}else{
-							var resultsNumber = results[printNumbers[i]]
-						}
-						var currentTime = lastTime + 500 + resultsNumber.length * 30 * this.frame
+						var currentTime = lastTime + 500 + results[printNumbers[i]].length * 30 * this.frame
 						if(currentTime > largestTime){
 							largestTime = currentTime
 						}
@@ -856,20 +814,14 @@ class Scoresheet{
 				
 				for(var i in printNumbers){
 					var start = this.state["countupTime" + p][printNumbers[i]]
-					var isAdlib = printNumbers[i] === "adlib"
-					if(isAdlib){
-						var resultsNumber = (results.adlibTotal > 0 ? Math.floor(results.adlib / results.adlibTotal * 100) : 0).toString()
-					}else{
-						var resultsNumber = results[printNumbers[i]]
-					}
 					this.draw.layeredText({
 						ctx: ctx,
-						text: this.getNumber(resultsNumber, start, elapsed),
-						x: 971 + 270 * Math.floor(i / 3) - (isAdlib ? 25 : 0),
+						text: this.getNumber(results[printNumbers[i]], start, elapsed),
+						x: 971 + 270 * Math.floor(i / 3),
 						y: 196 + (40 * (i % 3)),
 						fontSize: 26,
 						fontFamily: this.numbersFont,
-						letterSpacing: isAdlib ? -1 : 1,
+						letterSpacing: 1,
 						align: "right"
 					}, [
 						{outline: "#000", letterBorder: 9},
@@ -978,10 +930,10 @@ class Scoresheet{
 			var clearReached = this.controller.game.rules.clearReached(this.resultsObj.gauge)
 			var crown = ""
 			if(clearReached){
-				crown = this.resultsObj.bad === 0 ? (this.resultsObj.ok === 0 ? "rainbow" : "gold") : "silver"
+				crown = this.resultsObj.bad === 0 ? "gold" : "silver"
 			}
 			if(!oldScore || oldScore.points <= this.resultsObj.points){
-				if(oldScore && (oldScore.crown === "rainbow" || oldScore.crown === "gold" && (crown === "silver" || !crown) || oldScore.crown === "silver" && !crown)){
+				if(oldScore && (oldScore.crown === "gold" || oldScore.crown === "silver" && !crown)){
 					crown = oldScore.crown
 				}
 				this.resultsObj.crown = crown
@@ -991,7 +943,7 @@ class Scoresheet{
 				scoreStorage.add(hash, difficulty, this.resultsObj, true, title).catch(() => {
 					this.showWarning = {name: "scoreSaveFailed"}
 				})
-			}else if(oldScore && ((crown === "rainbow" && oldScore.crown !== "rainbow") || crown === "gold" && (oldScore.crown === "silver"  ||!oldScore.crown) || crown && !oldScore.crown)){
+			}else if(oldScore && (crown === "gold" && oldScore.crown !== "gold" || crown && !oldScore.crown)){
 				oldScore.crown = crown
 				scoreStorage.add(hash, difficulty, oldScore, true, title).catch(() => {
 					this.showWarning = {name: "scoreSaveFailed"}

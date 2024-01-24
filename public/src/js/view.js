@@ -1,5 +1,8 @@
 ﻿class View{
-	constructor(controller){
+	constructor(...args){
+		this.init(...args)
+	}
+	init(controller){
 		this.controller = controller
 		
 		this.canvas = document.getElementById("canvas")
@@ -9,8 +12,9 @@
 		if(noSmoothing){
 			this.ctx.imageSmoothingEnabled = false
 		}
-		if(resolution === "lowest"){
-			this.canvas.style.imageRendering = "pixelated"
+		this.multiplayer = this.controller.multiplayer
+		if(this.multiplayer !== 2 && resolution === "lowest"){
+			document.getElementById("game").classList.add("pixelated")
 		}
 		
 		this.gameDiv = document.getElementById("game")
@@ -94,7 +98,6 @@
 		this.branchCache = new CanvasCache(noSmoothing)
 		this.nameplateCache = new CanvasCache(noSmoothing)
 		
-		this.multiplayer = this.controller.multiplayer
 		if(this.multiplayer === 2){
 			this.player = p2.player === 2 ? 1 : 2
 		}else{
@@ -196,8 +199,8 @@
 			this.ratio = ratio
 			
 			if(this.player !== 2){
-				this.canvas.width = winW
-				this.canvas.height = winH
+				this.canvas.width = Math.max(1, winW)
+				this.canvas.height = Math.max(1, winH)
 				ctx.scale(ratio, ratio)
 				this.canvas.style.width = (winW / this.pixelRatio) + "px"
 				this.canvas.style.height = (winH / this.pixelRatio) + "px"
@@ -252,10 +255,6 @@
 			this.setDonBgHeight()
 		}
 		
-		if(this.controller.lyrics){
-			this.controller.lyrics.update(ms)
-		}
-		
 		ctx.save()
 		ctx.translate(0, frameTop)
 		
@@ -308,8 +307,8 @@
 						w: _w, h: _h,
 						radius: 11
 					})
-					ctx.fill()					
-
+					ctx.fill()
+					
 					this.draw.layeredText({
 						ctx: ctx,
 						text: selectedSong.category,
@@ -361,7 +360,7 @@
 				x2: winW - 38,
 				y2: frameTop + (this.player === 2 ? 484 : 293)
 			}
-			var taikoPos = {
+			var drumPos = {
 				x: 19,
 				y: frameTop + (this.player === 2 ? 464 : 184),
 				w: 111,
@@ -474,12 +473,8 @@
 			}
 			
 			// Badges
-			let badge_name = this.controller.getModBadge();
 			if(this.controller.autoPlayEnabled && !this.multiplayer){
-				badge_name = "badge_auto";
-			}
-			if (badge_name) { 
-				this.ctx.drawImage(assets.image[badge_name],
+				this.ctx.drawImage(assets.image["badge_auto"],
 					183,
 					this.player === 2 ? 490 : 265,
 					23,
@@ -554,7 +549,7 @@
 				x2: winW - 55,
 				y2: frameTop + (this.player === 2 ? 378 : 165)
 			}
-			var taikoPos = {x: 179, y: frameTop + 190, w: 138, h: 162}
+			var drumPos = {x: 179, y: frameTop + 190, w: 138, h: 162}
 			
 			this.nameplateCache.get({
 				ctx: ctx,
@@ -665,12 +660,8 @@
 			}
 			
 			// Badges
-			let badge_name = this.controller.getModBadge();
 			if(this.controller.autoPlayEnabled && !this.multiplayer){
-				badge_name = "badge_auto";
-			}
-			if(badge_name) {
-				this.ctx.drawImage(assets.image[badge_name],
+				this.ctx.drawImage(assets.image["badge_auto"],
 					125, 235, 34, 34
 				)
 			}
@@ -879,13 +870,13 @@
 		}
 		ctx.globalAlpha = 1
 		
-		// Taiko
-		ctx.drawImage(assets.image["taiko"],
+		// Drum
+		ctx.drawImage(assets.image["drum"],
 			0, 0, 138, 162,
-			taikoPos.x, taikoPos.y, taikoPos.w, taikoPos.h
+			drumPos.x, drumPos.y, drumPos.w, drumPos.h
 		)
 		
-		// Taiko pressed keys
+		// Drum pressed keys
 		var keys = ["ka_l", "ka_r", "don_l", "don_r"]
 		
 		for(var i = 0; i < keys.length; i++){
@@ -894,9 +885,9 @@
 				if(keyMS > 70 && !this.touchEnabled){
 					ctx.globalAlpha = this.draw.easeOut(1 - (keyMS - 70) / 60)
 				}
-				ctx.drawImage(assets.image["taiko"],
+				ctx.drawImage(assets.image["drum"],
 					0, 162 * (i + 1), 138, 162,
-					taikoPos.x, taikoPos.y, taikoPos.w, taikoPos.h
+					drumPos.x, drumPos.y, drumPos.w, drumPos.h
 				)
 			}
 		}
@@ -909,8 +900,8 @@
 		if(comboCount >= 10){
 			var comboText = comboCount.toString().split("")
 			var mul = this.portrait ? 0.8 : 1
-			var comboX = taikoPos.x + taikoPos.w / 2
-			var comboY = taikoPos.y + taikoPos.h * 0.09
+			var comboX = drumPos.x + drumPos.w / 2
+			var comboY = drumPos.y + drumPos.h * 0.09
 			var comboScale = 0
 			if(this.currentScore !== 0 && scoreMS < 100){
 				comboScale = this.draw.fade(scoreMS / 100)
@@ -936,7 +927,7 @@
 			}
 			
 			var fontSize = 24 * mul
-			var comboTextY = taikoPos.y + taikoPos.h * 0.63
+			var comboTextY = drumPos.y + drumPos.h * 0.63
 			if(orange === "1"){
 				var grd = ctx.createLinearGradient(
 					0,
@@ -1001,6 +992,7 @@
 		ctx.beginPath()
 		ctx.rect(this.slotPos.paddingLeft, 0, winW - this.slotPos.paddingLeft, winH)
 		ctx.clip()
+		
 		this.drawCircles(this.controller.getCircles())
 		if(this.controller.game.calibrationState === "video"){
 			if(ms % this.beatInterval < 1000 / 60 * 5){
@@ -1029,7 +1021,6 @@
 				"230": "ok",
 				"450": "good"
 			}
-			var drawScore = this.currentScore.adlib ? "adlib" : scores[this.currentScore.type]
 			var yOffset = scoreMS < 70 ? scoreMS * (13 / 70) : 0
 			var fadeOut = scoreMS > 250 && !this.touchEnabled
 			if(fadeOut){
@@ -1037,7 +1028,7 @@
 			}
 			this.draw.score({
 				ctx: ctx,
-				score: drawScore,
+				score: scores[this.currentScore.type],
 				x: this.slotPos.x,
 				y: this.slotPos.y - 98 * mul - yOffset,
 				scale: 1.35 * mul,
@@ -1520,6 +1511,7 @@
 	}
 	updateNoteFaces(){
 		var ms = this.getMS()
+		var lastNextBeat = this.nextBeat
 		while(ms >= this.nextBeat){
 			this.nextBeat += this.beatInterval
 			if(this.controller.getCombo() >= 50){
@@ -1533,6 +1525,9 @@
 					small: 0,
 					big: 3
 				}
+			}
+			if(this.nextBeat <= lastNextBeat){
+				break
 			}
 		}
 	}
@@ -1550,7 +1545,7 @@
 			
 			if(circle.isPlayed <= 0 || circle.score === 0){
 				if((!circle.branch || circle.branch.active) && ms >= startingTime && ms <= finishTime && circle.isPlayed !== -1){
-					this.drawCircle(circle, null, null, this.controller.mods && this.controller.mods.doron)
+					this.drawCircle(circle)
 				}
 			}else if(!circle.animating){
 				// Start animation to gauge
@@ -1574,7 +1569,7 @@
 			}
 		}
 	}
-	drawAnimatedCircles(circles) {
+	drawAnimatedCircles(circles){
 		var ms = this.getMS()
 		
 		for(var i = 0; i < circles.length; i++){
@@ -1617,7 +1612,7 @@
 		}
 		return data[0]
 	}
-	drawCircle(circle, circlePos, fade, doron){
+	drawCircle(circle, circlePos, fade){
 		var ctx = this.ctx
 		var mul = this.slotPos.size / 106
 		
@@ -1650,100 +1645,93 @@
 		}else{
 			var noteFace = this.noteFace
 		}
-
-		if (!doron) {
-			if (type === "don" || type === "daiDon" && played === 1) {
-				fill = "#f34728"
-				size = circleSize
-				faceID = noteFace.small
-			} else if (type === "ka" || type === "daiKa" && played === 1) {
-				fill = "#65bdbb"
-				size = circleSize
-				faceID = noteFace.small
-			} else if (type === "daiDon") {
-				fill = "#f34728"
-				size = bigCircleSize
-				faceID = noteFace.big
-			} else if (type === "daiKa") {
-				fill = "#65bdbb"
-				size = bigCircleSize
-				faceID = noteFace.big
-				}else if(type === "green"){
-			fill = "#5eb956"
+		if(type === "don" || type === "daiDon" && played === 1){
+			fill = "#f34728"
+			size = circleSize
+			faceID = noteFace.small
+		}else if(type === "ka" || type === "daiKa" && played === 1){
+			fill = "#65bdbb"
+			size = circleSize
+			faceID = noteFace.small
+		}else if(type === "daiDon"){
+			fill = "#f34728"
 			size = bigCircleSize
 			faceID = noteFace.big
-			} else if (type === "balloon") {
-				if (animated) {
-					fill = "#f34728"
-					size = bigCircleSize * 0.8
-					faceID = noteFace.big
-				} else {
-					fill = "#f87700"
-					size = circleSize
-					faceID = noteFace.small
-					var h = size * 1.8
-					if (circleMs + this.controller.audioLatency < ms && ms <= endTime + this.controller.audioLatency) {
-						circlePos.x = this.slotPos.x
-					} else if (ms > endTime + this.controller.audioLatency) {
-						circlePos.x = this.slotPos.x + this.msToPos(endTime - ms + this.controller.audioLatency, speed)
-					}
-					ctx.drawImage(assets.image["balloon"],
-						circlePos.x + size - 4,
-						circlePos.y - h / 2 + 2,
-						h / 61 * 115,
-						h
-					)
+		}else if(type === "daiKa"){
+			fill = "#65bdbb"
+			size = bigCircleSize
+			faceID = noteFace.big
+		}else if(type === "balloon"){
+			if(animated){
+				fill = "#f34728"
+				size = bigCircleSize * 0.8
+				faceID = noteFace.big
+			}else{
+				fill = "#f87700"
+				size = circleSize
+				faceID = noteFace.small
+				var h = size * 1.8
+				if(circleMs + this.controller.audioLatency < ms && ms <= endTime + this.controller.audioLatency){
+					circlePos.x = this.slotPos.x
+				}else if(ms > endTime + this.controller.audioLatency){
+					circlePos.x = this.slotPos.x + this.msToPos(endTime - ms + this.controller.audioLatency, speed)
 				}
-			} else if (type === "drumroll" || type === "daiDrumroll") {
-				fill = "#f3b500"
-				if (type == "drumroll") {
-					size = circleSize
-					faceID = noteFace.small
-				} else {
-					size = bigCircleSize
-					faceID = noteFace.big
-				}
-				endX = this.msToPos(endTime - circleMs, speed)
-				drumroll = endX > 50 ? 2 : 1
-				
-				ctx.fillStyle = fill
-				ctx.strokeStyle = "#000"
-				ctx.lineWidth = 3
-				ctx.beginPath()
-				ctx.moveTo(circlePos.x, circlePos.y - size + 1.5)
-				ctx.arc(circlePos.x + endX, circlePos.y, size - 1.5, Math.PI / -2, Math.PI / 2)
-				ctx.lineTo(circlePos.x, circlePos.y + size - 1.5)
-				ctx.fill()
-				ctx.stroke()
-			}
-			if (!fade || fade < 1) {
-				// Main circle
-				ctx.fillStyle = fill
-				ctx.beginPath()
-				ctx.arc(circlePos.x, circlePos.y, size - 1, 0, Math.PI * 2)
-				ctx.fill()
-				// Face on circle
-				var drawSize = size
-				if (faceID < 2) {
-					drawSize *= bigCircleSize / circleSize
-				}
-				ctx.drawImage(assets.image[drumroll ? "notes_drumroll" : "notes"],
-					0, 172 * faceID,
-					172, 172,
-					circlePos.x - drawSize - 4,
-					circlePos.y - drawSize - 4,
-					drawSize * 2 + 8,
-					drawSize * 2 + 8
+				ctx.drawImage(assets.image["balloon"],
+					circlePos.x + size - 4,
+					circlePos.y - h / 2 + 2,
+					h / 61 * 115,
+					h
 				)
 			}
-			if (fade && !this.touchEnabled) {
-				ctx.globalAlpha = this.draw.easeOut(fade < 1 ? fade : 2 - fade)
-				ctx.fillStyle = "#fff"
-				ctx.beginPath()
-				ctx.arc(circlePos.x, circlePos.y, size - 1, 0, Math.PI * 2)
-				ctx.fill()
-				ctx.globalAlpha = 1
+		}else if(type === "drumroll" || type === "daiDrumroll"){
+			fill = "#f3b500"
+			if(type == "drumroll"){
+				size = circleSize
+				faceID = noteFace.small
+			}else{
+				size = bigCircleSize
+				faceID = noteFace.big
 			}
+			endX = this.msToPos(endTime - circleMs, speed)
+			drumroll = endX > 50 ? 2 : 1
+			
+			ctx.fillStyle = fill
+			ctx.strokeStyle = "#000"
+			ctx.lineWidth = 3
+			ctx.beginPath()
+			ctx.moveTo(circlePos.x, circlePos.y - size + 1.5)
+			ctx.arc(circlePos.x + endX, circlePos.y, size - 1.5, Math.PI / -2, Math.PI / 2)
+			ctx.lineTo(circlePos.x, circlePos.y + size - 1.5)
+			ctx.fill()
+			ctx.stroke()
+		}
+		if(!fade || fade < 1){
+			// Main circle
+			ctx.fillStyle = fill
+			ctx.beginPath()
+			ctx.arc(circlePos.x, circlePos.y, size - 1, 0, Math.PI * 2)
+			ctx.fill()
+			// Face on circle
+			var drawSize = size
+			if(faceID < 2){
+				drawSize *= bigCircleSize / circleSize
+			}
+			ctx.drawImage(assets.image[drumroll ? "notes_drumroll" : "notes"],
+				0, 172 * faceID,
+				172, 172,
+				circlePos.x - drawSize - 4,
+				circlePos.y - drawSize - 4,
+				drawSize * 2 + 8,
+				drawSize * 2 + 8
+			)
+		}
+		if(fade && !this.touchEnabled){
+			ctx.globalAlpha = this.draw.easeOut(fade < 1 ? fade : 2 - fade)
+			ctx.fillStyle = "#fff"
+			ctx.beginPath()
+			ctx.arc(circlePos.x, circlePos.y, size - 1, 0, Math.PI * 2)
+			ctx.fill()
+			ctx.globalAlpha = 1
 		}
 		if(!circle.animating && circle.text){
 			// Text
@@ -1960,12 +1948,11 @@
 			don.setAnimationEnd(length, don.normalAnimation)
 		}
 	}
-	displayScore(score, notPlayed, bigNote, adlib){
+	displayScore(score, notPlayed, bigNote){
 		if(!notPlayed){
 			this.currentScore.ms = this.getMS()
 			this.currentScore.type = score
 			this.currentScore.bigNote = bigNote
-			this.currentScore.adlib = adlib
 			
 			if(score > 0){
 				var explosion = this.assets.explosion
